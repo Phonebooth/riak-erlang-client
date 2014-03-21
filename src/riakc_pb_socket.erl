@@ -819,9 +819,9 @@ get_index_eq(Pid, Bucket, Index, Key, Opts) ->
     Call = case Stream of
                true ->
                    ReqId = mk_reqid(),
-                   {req, Req, infinity, {ReqId, self()}};
+                   {req, Req, Timeout, {ReqId, self()}};
                false ->
-                   {req, Req, infinity}
+                   {req, Req, Timeout}
            end,
     gen_server:call(Pid, Call, CallTimeout).
 
@@ -867,9 +867,9 @@ get_index_range(Pid, Bucket, Index, StartKey, EndKey, Opts) ->
     Call = case Stream of
                true ->
                    ReqId = mk_reqid(),
-                   {req, Req, infinity, {ReqId, self()}};
+                   {req, Req, Timeout, {ReqId, self()}};
                false ->
-                   {req, Req, infinity}
+                   {req, Req, Timeout}
            end,
     gen_server:call(Pid, Call, CallTimeout).
 
@@ -1023,6 +1023,8 @@ handle_info({tcp_error, _Socket, Reason}, State) ->
     disconnect(State);
 
 handle_info({tcp_closed, _Socket}, State) ->
+    error_logger:error_msg("PBC client got a TCP closed for ~p:~p - ~p\n",
+                           [State#state.address, State#state.port]),
     disconnect(State);
 
 %% Make sure the two Sock's match.  If a request timed out, but there was
@@ -1597,7 +1599,10 @@ restart_req_timer(Request) ->
 connect(State) when State#state.sock =:= undefined ->
     #state{address = Address, port = Port, connects = Connects} = State,
     case gen_tcp:connect(Address, Port,
-                         [binary, {active, once}, {packet, 4}, {header, 1}],
+                         [binary, {active, once}, 
+                                  {packet, 4}, 
+                                  {header, 1}, 
+                                  {nodelay, true}],
                          State#state.connect_timeout) of
         {ok, Sock} ->
             {ok, State#state{sock = Sock, connects = Connects+1,
@@ -1656,6 +1661,7 @@ send_request(#request{msg = {tunneled,MsgId,Pkt}}=Msg, State) when State#state.a
         ok ->
             State#state{active = Request};
         {error, closed} ->
+            error_logger:error_msg("PBC client closing due to send error", []),
             gen_tcp:close(State#state.sock),
             maybe_enqueue_and_reconnect(Msg, State#state{sock=undefined})
     end;
@@ -1666,6 +1672,7 @@ send_request(Request, State) when State#state.active =:= undefined ->
         ok ->
             maybe_reply(after_send(Request, State#state{active = Request}));
         {error, closed} ->
+            error_logger:error_msg("PBC client closing due to send error", []),
             gen_tcp:close(State#state.sock),
             maybe_enqueue_and_reconnect(Request, State#state{sock=undefined})
     end.
