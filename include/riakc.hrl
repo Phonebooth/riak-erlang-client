@@ -181,3 +181,9 @@
          }).
 
 -type search_result() :: #search_results{}.
+
+-ifdef(use_new_time_api).
+-define(UNOW(), {erlang:monotonic_time(), erlang:unique_integer([monotonic]), erlang:unique_integer([monotonic])}).
+-else.
+-define(UNOW(), erlang:now()).
+-endif.

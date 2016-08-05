@@ -115,7 +115,7 @@
                 queue_if_disconnected = false :: boolean(), % if true, add requests to queue if disconnected
                 sock :: port(),       % gen_tcp socket
                 active :: #request{} | undefined,     % active request
-                queue :: queue() | undefined,      % queue of pending requests
+                queue :: any() | undefined,      % queue of pending requests
                 connects=0 :: non_neg_integer(), % number of successful connects
                 failed=[] :: [connection_failure()],  % breakdown of failed connects
                 connect_timeout=infinity :: timeout(), % timeout of TCP connection
@@ -1725,7 +1725,7 @@ remove_queued_request(Ref, State) ->
     end.
 
 %% @private
-mk_reqid() -> erlang:phash2(erlang:now()). % only has to be unique per-pid
+mk_reqid() -> erlang:phash2(?UNOW()). % only has to be unique per-pid
 
 %% @private
 wait_for_list(ReqId) ->
