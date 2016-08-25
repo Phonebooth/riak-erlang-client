@@ -940,7 +940,7 @@ counter_incr(Pid, Bucket, Key, Amount) ->
     ok | {error, term()}.
 counter_incr(Pid, Bucket, Key, Amount, Options) ->
     Req = counter_incr_options(Options, #rpbcounterupdatereq{bucket=Bucket, key=Key, amount=Amount}),
-    gen_server:call(Pid, {req, Req, default_timeout(put_timeout)}).
+    gen_server:call(Pid, {req, Req, default_timeout(put_timeout)}, infinity).
 
 %% @doc get the current value of the counter at `Bucket', `Key'.
 -spec counter_val(pid(), bucket(), key()) ->
@@ -954,7 +954,7 @@ counter_val(Pid, Bucket, Key) ->
                          {ok, integer()} | {error, term()}.
 counter_val(Pid, Bucket, Key, Options) ->
     Req = counter_val_options(Options, #rpbcountergetreq{bucket=Bucket, key=Key}),
-    gen_server:call(Pid, {req, Req, default_timeout(get_timeout)}).
+    gen_server:call(Pid, {req, Req, default_timeout(get_timeout)}, infinity).
 
 %% ====================================================================
 %% gen_server callbacks
