@@ -1023,7 +1023,7 @@ handle_info({tcp_error, _Socket, Reason}, State) ->
     disconnect(State);
 
 handle_info({tcp_closed, _Socket}, State) ->
-    error_logger:error_msg("PBC client got a TCP closed for ~p:~p - ~p\n",
+    error_logger:error_msg("PBC client got a TCP closed for ~p:~p\n",
                            [State#state.address, State#state.port]),
     disconnect(State);
 
