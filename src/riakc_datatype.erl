@@ -2,7 +2,7 @@
 %%
 %% riakc_datatype: Behaviour for eventually-consistent data-types
 %%
-%% Copyright (c) 2013 Basho Technologies, Inc.  All Rights Reserved.
+%% Copyright (c) 2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
@@ -30,11 +30,15 @@
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -define(QC_OUT(P), eqc:on_output(fun(Fmt, Args) -> io:format(user, Fmt, Args) end, P)).
+-callback gen_type() -> eqc_gen:gen(datatype()).
+-callback gen_op()   -> eqc_gen:gen({atom(), [term()]}).
 -compile(export_all).
 -endif.
 
 
--define(MODULES, [riakc_set, riakc_counter, riakc_flag, riakc_register, riakc_map]).
+
+-define(MODULES, [riakc_set, riakc_gset, riakc_counter, riakc_flag, riakc_register,
+                  riakc_map, riakc_hll]).
 
 -export([module_for_type/1,
          module_for_term/1]).
@@ -51,6 +55,10 @@
 %% creating a new key.
 -callback new() -> datatype().
 
+%% Constructs a new, empty container with context for the type. Use
+%% this when creating a new key inside a map.
+-callback new(context()) -> datatype().
+
 %% Constructs a new container for the type with the specified
 %% value and opaque server-side context. This should only be used
 %% internally by the client code.
@@ -59,10 +67,6 @@
 %% Returns the original, unmodified value of the type. This does
 %% not include the application of any locally-queued operations.
 -callback value(datatype()) -> term().
-
-%% Returns a version of the value with locally-queued operations
-%% applied.
--callback dirty_value(datatype()) -> term().
 
 %% Extracts an operation from the container that can be encoded
 %% into an update request. 'undefined' should be returned if the type
@@ -82,6 +86,8 @@
 %% type.
 -spec module_for_type(Type::atom()) -> module().
 module_for_type(set)      -> riakc_set;
+module_for_type(hll)      -> riakc_hll;
+module_for_type(gset)     -> riakc_gset;
 module_for_type(counter)  -> riakc_counter;
 module_for_type(flag)     -> riakc_flag;
 module_for_type(register) -> riakc_register;
@@ -109,9 +115,9 @@ module_for_term(T) ->
 -define(F(Fmt, Args), lists:flatten(io_lib:format(Fmt, Args))).
 datatypes_test_() ->
      [{" prop_module_type() ",
-       ?_assertEqual(true, quickcheck(?QC_OUT(prop_module_type())))}] ++
+       ?_assert(eqc:quickcheck(?QC_OUT(prop_module_type())))}] ++
      [ {?F(" ~s(~s) ", [Prop, Mod]),
-        ?_assertEqual(true, quickcheck(?QC_OUT(eqc:testing_time(2, ?MODULE:Prop(Mod)))))} ||
+        ?_assert(eqc:quickcheck(?QC_OUT(eqc:testing_time(2, ?MODULE:Prop(Mod)))))} ||
          Prop <- ?MODPROPS,
          Mod <- ?MODULES ].
 
