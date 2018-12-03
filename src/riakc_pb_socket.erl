@@ -2182,7 +2182,7 @@ connect(State) when State#state.sock =:= undefined ->
     #state{address = Address, port = Port, connects = Connects} = State,
     case gen_tcp:connect(Address, Port,
                          [binary, {active, once}, {packet, 4},
-                          {keepalive, State#state.keepalive}],
+                          {keepalive, State#state.keepalive}, {nodelay, true}],
                          State#state.connect_timeout) of
         {ok, Sock} ->
             State1 = State#state{sock = Sock, connects = Connects+1,
